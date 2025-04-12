@@ -45,6 +45,20 @@ function clipHistogram(array $hist, int $clipLimit): array {
     return $hist;
 }
 
+function getPixelNeihbouringTilesPositions(int $row, int $col, int $tileWidth, int $tileHeight): array {
+    $topRow = floor(($row - 1) / $tileWidth);
+    $botRow = ceil(($row - 1) / $tileWidth);
+    $leftCol = floor(($col - 1) / $tileHeight);
+    $rightCol = ceil(($col - 1) / $tileHeight);
+
+    $topLeft = array($topRow, $leftCol);
+    $topRight = array($topRow, $rightCol);
+    $botLeft = array($botRow, $leftCol);
+    $botRight = array($botRow, $rightCol);
+
+    return array($topLeft, $topRight, $botLeft, $botRight);
+}
+
 function clahe(array $image, array $tileGridSize = [8, 8], int $clipLimit = 40): array {
     $numBins = 256;
 
@@ -67,7 +81,19 @@ function clahe(array $image, array $tileGridSize = [8, 8], int $clipLimit = 40):
 
             $tileHistogram = calculateHistogram(array_merge(...$tile));
 
-
+            // clipping histograms (clahe)
+            $clippedTileHistogram = clipHistogram($tileHistogram);
         }
     }
+
+    $newImage = array();
+    for ($i = 0; $i < $height; $i++) {
+        $newRow = array();
+        for ($j = 0; $j < $width; $j++) {
+            $oldPixel = $image[i][j];
+
+            $neighbouringTilesPositions = getPixelNeihbouringTilesPositions($i, $j, $tileWidth, $tileHeight);
+        }
+    }
+
 }
