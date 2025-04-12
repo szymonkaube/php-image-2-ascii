@@ -95,6 +95,7 @@ function clahe(array $image, array $tileGridSize = [8, 8], int $clipLimit = 40):
 
     $tileMappings = array();
     for ($tx = 0; $tx < $tileGridSize[0]; $tx++) {
+        $rowTileMappings = array();
         for ($ty = 0; $ty < $tileGridSize[1]; $ty++) {
             $startX = $tx * $tileWidth;
             $startY = $ty * $tileHeight;
@@ -104,15 +105,23 @@ function clahe(array $image, array $tileGridSize = [8, 8], int $clipLimit = 40):
             $tileHistogram = calculateHistogram(array_merge(...$tile));
 
             // clipping histograms (clahe)
-            $tileHistogram = clipHistogram($tileHistogram);
+            $tileHistogram = clipHistogram($tileHistogram, $actualClipLimit);
 
+            // calculate pdf from histogram
             $tilePDF = calculatePDF($tileHistogram);
+            // calculate cdf from pdf
+            $tileCDF = calculateCDF($tilePDF);
 
+            // create intensity mapping from cdf
             $tileMapping = array();
-            for ($x = 0; $x < 256; $x++) {
-                $tile
+            for ($x = 0; $x < $numBins; $x++) {
+                $tileMapping[] = round(($numBins - 1) * $tileCDF[$x]);
             }
+
+            $rowTileMappings[] = $tileMapping;
         }
+
+        $tileMappings[] = $rowTileMappings;
     }
 
     $newImage = array();
@@ -121,8 +130,66 @@ function clahe(array $image, array $tileGridSize = [8, 8], int $clipLimit = 40):
         for ($j = 0; $j < $width; $j++) {
             $oldPixel = $image[i][j];
 
+            // get neighbouring tiles positions
             $neighbouringTilesPositions = getPixelNeihbouringTilesPositions($i, $j, $tileWidth, $tileHeight);
+            [$topLeftRow, $topLeftCol] = $neighbouringTilesPositions[0];
+            [$topRightRow, $topRightCol] = $neighbouringTilesPositions[1];
+            [$botLeftRow, $botLeftCol] = $neighbouringTilesPositions[2];
+            [$botRightRow, $botRightCol] = $neighbouringTilesPositions[3];
+
+            // get neighbouring tiles mappings
+            $TLMapping = $tileMappings[$topLeftRow][$topLeftCol];
+            $TRMapping = $tileMappings[$topRightRow][$topRightCol];
+            $BLMapping = $tileMappings[$botLeftRow][$botLeftCol];
+            $BRMapping = $tileMappings[$botRightRow][$botRightCol];
+
+            // get neighbouring tiles new pixel values
+            $pixelTL = $TLMapping[$oldPixel];
+            $pixelTR = $TRMapping[$oldPixel];
+            $pixelBL = $BLMapping[$oldPixel];
+            $pixelBR = $BRMapping[$oldPixel];
+
+            // calculate interpolation weights
+
+            // get neighbouring tiles centers
+            $topLeftCenter = array(
+                $topLeftRow * $tileWidth + floor($tileWidth / 2),
+                $topLeftCol * $tileHeight + floor($tileHeight / 2)
+            );
+            $topRightCenter = array(
+                $topRightRow * $tileWidth + floor($tileWidth / 2),
+                $topRightCol * $tileHeight + floor($tileHeight / 2)
+            );
+            $botLeftCenter = array(
+                $botLeftRow * $tileWidth + floor($tileWidth / 2),
+                $botLeftCol * $tileHeight + floor($tileHeight / 2)
+            );
+            $botRightCenter = array(
+                $botRightRow * $tileWidth + floor($tileWidth / 2),
+                $botRightCol * $tileHeight + floor($tileHeight / 2)
+            );
+
+            // calculate horizontal and vertical distance from pixel to tiles
+            $dx = $j - $topLeftCenter[1];
+            $dy = $i - $topLeftCenter[0];
+            // calculate total distances between tile centers
+            $Dx = $topRightCenter[1] - $topLeftCenter[1];
+            $Dy = $botRightCenter[0] - $topRightCenter[0];
+
+            // calculate interpolation parameters
+            $alpha = dx / Dx;
+            $beta = dy / Dy;
+
+            // perform interpolation
+            $pixelTop = (1 - $alpha) * $pixelTL + $alpha * $pixelTR;
+            $pixelBot = (1 - $alpha) * $pixelBL + $alpha * $pixelBR;
+
+            $newPixel = (1 - $beta) * $pixelTop + $beta * $pixelBot;
+
+            // round and clip
+            $newRow[] = min(round($newPixel), 255);
         }
+        $newImage[] = $newRow;
     }
 
 }
