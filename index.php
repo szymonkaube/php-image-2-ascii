@@ -50,7 +50,7 @@
                         $image = imagecreatefrompng($imgPath);
                         break;
                     case 'image/gif':
-                        $image = imagecreatefromgif($imagePath);
+                        $image = imagecreatefromgif($imgPath);
                         break;
                     default:
                         throw new Exception("Unsupported image format");

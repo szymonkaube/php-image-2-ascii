@@ -1,4 +1,9 @@
 <?php
+function rgbToGrayscale(int $r, int $g, int $b): int {
+    $grayPixelValue = 0.2989 * $r + 0.5870 * $g + 0.1140 * $b;
+    return (int) $grayPixelValue;
+}
+
 function gdImageToPixels(GdImage $image): array {
     $width = imagesx($image);
     $height = imagesy($image);
@@ -15,16 +20,14 @@ function gdImageToPixels(GdImage $image): array {
             $g = ($rgb >> 8) & 0xFF;
             $b = $rgb & 0xFF;
 
-            $grayPixelValue = 0.2989 * $r + 0.5870 * $g + 0.1140 * $b;
-            $grayPixelValue = (int) $grayPixelValue;
-
-            $row[] = $grayPixelValue;
+            $row[] = rgbToGrayscale($r, $g, $b);
         }
         $pixels[] = $row;
     }
 
     return $pixels;
 }
+
 function sumRadius(array $array, int $i, int $j, int $radius): int {
     $sum = 0;
     $rows = count($array);
