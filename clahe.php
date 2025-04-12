@@ -45,6 +45,28 @@ function clipHistogram(array $hist, int $clipLimit): array {
     return $hist;
 }
 
+function calculatePDF(array $hist): array {
+    $numBins = count($hist);
+    $numSamples = array_sum($hist);
+
+    $pdf = array();
+    foreach ($hist as $binCount) {
+        $pdf[] = $binCount / $numSamples;
+    }
+    return pdf;
+}
+
+function calculateCDF(array $pdf): array {
+    $currentCDFValue = 0.0;
+
+    $cdf = array();
+    foreach ($pdf as $pdfValue) {
+        $cdf[] = $currentCDFValue;
+        $currentCDFValue += $pdfValue;
+    }
+    return $cdf;
+}
+
 function getPixelNeihbouringTilesPositions(int $row, int $col, int $tileWidth, int $tileHeight): array {
     $topRow = floor(($row - 1) / $tileWidth);
     $botRow = ceil(($row - 1) / $tileWidth);
@@ -82,7 +104,14 @@ function clahe(array $image, array $tileGridSize = [8, 8], int $clipLimit = 40):
             $tileHistogram = calculateHistogram(array_merge(...$tile));
 
             // clipping histograms (clahe)
-            $clippedTileHistogram = clipHistogram($tileHistogram);
+            $tileHistogram = clipHistogram($tileHistogram);
+
+            $tilePDF = calculatePDF($tileHistogram);
+
+            $tileMapping = array();
+            for ($x = 0; $x < 256; $x++) {
+                $tile
+            }
         }
     }
 
